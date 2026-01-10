@@ -225,7 +225,7 @@ const generateFastAPIResponse = async (userPrompt, sendBtn, messageInput) => {
     const initialDelay = 1000;
 
     const payload = { prompt: userPrompt };
-    const apiUrl = 'http://192.168.100.45:5000/send_prompt';
+    const apiUrl = 'http://192.168.0.100:5000/send_prompt';
 
     try {
         while (retries < maxRetries) {

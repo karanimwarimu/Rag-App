@@ -45,9 +45,14 @@ def encode(sentences, normalize_embeddings=True):
     embeddings = np.array(embeddings)
 
     if normalize_embeddings:
-        embeddings = embeddings / np.linalg.norm(
-            embeddings, axis=1, keepdims=True
-        )
+        if embeddings.ndim == 1:
+            # single sentence
+            embeddings = embeddings / np.linalg.norm(embeddings)
+        else:
+            # batch of sentences
+            embeddings = embeddings / np.linalg.norm(
+                embeddings, axis=1, keepdims=True
+            )
 
     return embeddings
 

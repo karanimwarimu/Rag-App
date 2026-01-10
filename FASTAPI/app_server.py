@@ -46,11 +46,11 @@ app.mount("/static", StaticFiles(directory= StaticFiles_DIR) , name="static")
 
 #::::::::::::::::::: LOAD WEB PAGES :::::::::::::::::::::::::
  
-@app.get('/' , response_class=HTMLResponse)
+@app.get('/chatbot' , response_class=HTMLResponse)
 async def load_RagChat(request : Request ):
     return templates.TemplateResponse("RagChatApp.html" , {"request" : request})
        
-@app.get('/file_upload' , response_class=HTMLResponse)
+@app.get('/fileuploader' , response_class=HTMLResponse)
 async def load_file_Uploader(request:Request):
    return templates.TemplateResponse("FileUploader.html" , {"request" : request})
 

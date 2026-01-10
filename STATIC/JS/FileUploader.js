@@ -113,7 +113,7 @@
                     }
                 }, 100);
 
-                // NEW: Make a fetch request to the Flask server's upload endpoint
+                // NEW: Make a fetch request to the server's upload endpoint
                 const response = await fetch('http://192.168.0.100:5000/File_Upload', {
                     method: 'POST',
                     body: formData,
