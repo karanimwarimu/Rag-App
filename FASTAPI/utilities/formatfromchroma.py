@@ -1,5 +1,5 @@
 import logging
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from sklearn.metrics.pairwise import cosine_similarity
 from utilities.postprocessors import trim_chunks, rerank_chunks , filter_and_trim_chunks
 
