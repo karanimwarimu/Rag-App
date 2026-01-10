@@ -161,7 +161,7 @@ const generateFastAPIImageResponse = async (userPrompt, base64ImageData) => {
 
     // ----- FASTAPI INTEGRATION: Plug your API route here -----
     // This is a placeholder. You need to replace this with your actual endpoint URL.
-    const apiUrl = 'http://192.168.100.45:8000/chat-with-image';
+    const apiUrl = 'http://192.168.0.100:8000/chat-with-image';
 
     while (retries < maxRetries) {
         try {

@@ -1,6 +1,6 @@
 {
-    "TemplatesFolder" :  "F:/BIG (II)/Projects mk1/RAG_APP/TEMPLATE" ,
-    "StaticFolder" : "F:/BIG (II)/Projects mk1/RAG_APP/STATIC" ,
+    "TemplatesFolder" :  "F:/BIG2/Projects mk1/RAG_APP/TEMPLATE" ,
+    "StaticFolder" : "F:/BIG2/Projects mk1/RAG_APP/STATIC" ,
 
     "modelpath" : "F:/BIG (II)/MODEL(II)/mistral/mistral-7b-instruct-v0.1.Q4_K_M.gguf" ,
     "n_ctx" : 2048, 
@@ -16,7 +16,7 @@
     } ,
 
     "Allowed_Extensions" : [".docx", ".txt", ".pdf", ".png", ".jpeg", ".jpg"] ,
-    "Embedding Model" : "C:/Users/compweb/.cache/huggingface/hub/models--sentence-transformers--all-MiniLM-L6-v2/snapshots/c9745ed1d9f207416be6d2e6f8de32d1f16199bf" ,
+    "Embedding Model": "sentence-transformers/all-MiniLM-L6-v2" ,
      "Chroma DB" : "F:/BIG (II)/Projects mk1/mini RAG/Chroma DB" ,
-     "cross_encoder_reranker" : "F:/BIG (II)/Projects mk1/models--cross-encoder--ms-marco-MiniLM-L-6-v2/snapshots/ce0834f22110de6d9222af7a7a03628121708969"
+     "cross_encoder_reranker" : "cross-encoder/ms-marco-MiniLM-L-6-v2"
 }

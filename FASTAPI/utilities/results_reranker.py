@@ -1,12 +1,31 @@
-from sentence_transformers import CrossEncoder
+from huggingface_hub import InferenceClient
 import json 
+from dotenv import load_dotenv
+import os 
+import sys 
 
+
+load_dotenv()
+
+api_key = os.getenv("Embedding_KEY")
+
+if not api_key  :
+    print("Check API key !!")
+    sys.exit(1)
+else :
+    print("API key correct :) ")
+    
 with open("configfile.json") as red :
     configfile= json.load(red)
 
+
 # Initialize once (at startup)
 reranker_model = configfile["cross_encoder_reranker"]
-reranker = CrossEncoder(reranker_model)
+
+reranker_client = InferenceClient(
+    provider="hf-inference",
+    api_key = api_key
+)
 
 """""
 async def rerank_chunks(chunks, query, top_k=2):
@@ -32,11 +51,39 @@ async def split_large_chunk(text: str, max_tokens: int = 500, enc_name: str = "c
         chunks.append(enc.decode(sub_tokens))
     return chunks
 
-async def rerank_chunks(query: str, chunks: list, top_k: int = 2 , min_score: float = 0.0):
-    formatted_chunks = [{"text": c["text"], "metadata": c.get("metadata", {})} if isinstance(c, dict) else {"text": str(c), "metadata": {}} for c in chunks]
-    pairs = [(query, c["text"]) for c in formatted_chunks]
-    scores = reranker.predict(pairs)
-    ranked = sorted(zip(formatted_chunks, scores), key=lambda x: x[1], reverse=True)
+
+async def rerank_chunks(
+    query: str,
+    chunks: list,
+    top_k: int = 2,
+    min_score: float = 0.0
+):
+    # Normalize chunks
+    formatted_chunks = [
+        {"text": c["text"], "metadata": c.get("metadata", {})}
+        if isinstance(c, dict)
+        else {"text": str(c), "metadata": {}}
+        for c in chunks
+    ]
+
+    scores = []
+
+    for chunk in formatted_chunks:
+        result = reranker_client.text_classification(
+            inputs=f"{query} [SEP] {chunk['text']}",
+            model=reranker_model
+        )
+
+        # HF returns list of labels; take highest score
+        score = max(r["score"] for r in result)
+        scores.append(score)
+
+    ranked = sorted(
+        zip(formatted_chunks, scores),
+        key=lambda x: x[1],
+        reverse=True
+    )
+
     return [c for c, s in ranked if s >= min_score][:top_k]
 
 async def merge_chunks_for_llm(query: str, chunks: list, top_k: int = 5, max_tokens: int = 2000, split_chunk_tokens: int = 500):
