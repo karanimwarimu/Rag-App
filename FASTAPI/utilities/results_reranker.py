@@ -27,6 +27,25 @@ reranker_client = InferenceClient(
     api_key = api_key
 )
 
+import requests
+
+HF_TOKEN = api_key
+#RERANKER_MODEL = reranker_model
+
+MODEL_ID = "BAAI/bge-reranker-large"
+MODEL_ID_ENCODED = MODEL_ID.replace("/", "%2F")
+
+API_URL = (
+    "https://router.huggingface.co/hf-inference/models/"
+    f"{MODEL_ID_ENCODED}/pipeline/text-ranking"
+)
+
+HEADERS = {
+    "Authorization": f"Bearer {HF_TOKEN}",
+    "Content-Type": "application/json",
+}
+
+
 """""
 async def rerank_chunks(chunks, query, top_k=2):
     pairs = [(query, c) for c in chunks]
@@ -51,12 +70,11 @@ async def split_large_chunk(text: str, max_tokens: int = 500, enc_name: str = "c
         chunks.append(enc.decode(sub_tokens))
     return chunks
 
-
 async def rerank_chunks(
     query: str,
     chunks: list,
     top_k: int = 2,
-    min_score: float = 0.0
+    min_score: float = 0.0,
 ):
     # Normalize chunks
     formatted_chunks = [
@@ -66,25 +84,40 @@ async def rerank_chunks(
         for c in chunks
     ]
 
-    scores = []
+    texts = [c["text"] for c in formatted_chunks]
 
-    for chunk in formatted_chunks:
-        result = reranker_client.text_classification(
-            inputs=f"{query} [SEP] {chunk['text']}",
-            model=reranker_model
-        )
+    payload = {
+        "inputs": {
+            "query": query,
+            "texts": texts
+        }
+    }
 
-        # HF returns list of labels; take highest score
-        score = max(r["score"] for r in result)
-        scores.append(score)
-
-    ranked = sorted(
-        zip(formatted_chunks, scores),
-        key=lambda x: x[1],
-        reverse=True
+    response = requests.post(
+        API_URL,
+        headers=HEADERS,
+        json=payload,
+        timeout=60,
     )
 
-    return [c for c, s in ranked if s >= min_score][:top_k]
+    response.raise_for_status()
+    results = response.json()
+
+    # Example HF response:
+    # [
+    #   {"index": 3, "score": 10.92},
+    #   {"index": 1, "score": 7.41}
+    # ]
+
+    ranked = []
+    for r in results:
+        if r["score"] >= min_score:
+            ranked.append(formatted_chunks[r["index"]])
+        if len(ranked) >= top_k:
+            break
+
+    return ranked
+
 
 async def merge_chunks_for_llm(query: str, chunks: list, top_k: int = 5, max_tokens: int = 2000, split_chunk_tokens: int = 500):
     """
