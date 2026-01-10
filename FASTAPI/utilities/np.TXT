@@ -1,0 +1,115 @@
+import numpy as np
+
+async def format_chroma_query(
+    chroma_result, 
+    top_k=3, 
+    min_diff=0.05, 
+    max_len=1000, 
+    include_scores=True, 
+    include_metadata=True
+):
+    """
+    Format retrieved Chroma results into a clean context string (LLM-ready).
+    
+    Args:
+        chroma_result (dict): Result from ChromaDB query
+        top_k (int): number of unique chunks to keep
+        min_diff (float): threshold to skip near-duplicate distances
+        max_len (int): max character length per doc
+        include_scores (bool): whether to include similarity scores
+        include_metadata (bool): whether to include metadata (page, source, etc.)
+
+    Returns:
+        str -> formatted context string
+    """
+
+    docs = chroma_result.get("documents", [[]])[0]
+    distances = chroma_result.get("distances", [[]])[0]
+    metadatas = chroma_result.get("metadatas", [[]])[0] if "metadatas" in chroma_result else [{}] * len(docs)
+
+    # Step 1: Rank by distance (basic retriever)
+    ranked = sorted(zip(docs, distances, metadatas), key=lambda x: x[1])
+
+    # Step 2: Deduplicate (avoid near-identical embeddings)
+    top_docs, seen = [], []
+    for doc, dist, meta in ranked:
+        if any(abs(dist - d) < min_diff for d in seen):
+            continue
+        clean_doc = doc.strip()
+
+        # Step 3: Handle overly long docs (truncate for now)
+        if len(clean_doc) > max_len:
+            clean_doc = clean_doc[:max_len] + "..."
+
+        # Step 4: Build structured block
+        block = clean_doc
+        if include_scores:
+            block += f"\n\n(Relevance Score: {1 - dist:.4f})"
+        if include_metadata and meta:
+            meta_info = []
+            if "page" in meta:
+                meta_info.append(f"Page {meta['page']}")
+            if "source" in meta:
+                meta_info.append(f"Source: {meta['source']}")
+            if meta_info:
+                block += f"\n(Metadata: {', '.join(meta_info)})"
+
+        top_docs.append(block)
+        seen.append(dist)
+
+        if len(top_docs) >= top_k:
+            break
+
+    # Step 5: Join into final context string
+    return "\n\n---\n\n".join(top_docs)
+
+
+
+async def rerank_chunks(query: str, chunks: list, top_k: int = 2, min_score: float = 0.0):
+ 
+    formatted_chunks = [{"text": c["text"], "metadata": c.get("metadata", {})} if isinstance(c, dict) else {"text": str(c), "metadata": {}} for c in chunks]
+
+    pairs = [(query, c["text"]) for c in formatted_chunks]
+
+    # Get relevance scores
+    scores = reranker.predict(pairs)
+
+    
+    ranked = sorted(zip(formatted_chunks, scores), key=lambda x: x[1], reverse=True)
+
+    # Filter by score threshold and top_k
+    return [c for c, s in ranked if s >= min_score][:top_k]
+
+
+import tiktoken  # optional, for token counting
+
+async def merge_chunks_for_llm(query: str, chunks: list, top_k: int = 5, max_tokens: int = 2000):
+    """
+    Rerank chunks and merge them into a single text string suitable for LLM input.
+    Ensures the merged text does not exceed max_tokens.
+    """
+    # Rerank first
+    reranked = await rerank_chunks(query, chunks, top_k=top_k)
+    
+    merged_text = ""
+    total_tokens = 0
+    enc = tiktoken.get_encoding("cl100k_base")  # or model-specific encoding
+    
+    for c in reranked:
+        text = c["text"]
+        tokens = len(enc.encode(text))
+        if total_tokens + tokens > max_tokens:
+            # Truncate to fit remaining tokens
+            remaining = max_tokens - total_tokens
+            text = enc.decode(enc.encode(text)[:remaining])
+            merged_text += "\n" + text
+            break
+        merged_text += "\n" + text
+        total_tokens += tokens
+
+    return merged_text.strip()
+
+
+
+
+

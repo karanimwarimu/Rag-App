@@ -1,0 +1,14 @@
+# --- Virtual Environments ---
+ragvenv/
+venv/
+.venv/
+env/
+
+# --- Environment Variables (CRITICAL: Never commit these!) ---
+.env
+
+# --- Python Artifacts ---
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/

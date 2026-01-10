@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat UI with FastAPI</title>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d0d0d; /* A solid dark color for the background */
+        }
+        /* Custom bounce animation for the thinking dots */
+        .animate-bounce-dots > div {
+            animation: bounce 0.6s infinite alternate;
+        }
+        .animate-bounce-dots > div:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        .animate-bounce-dots > div:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-50%); }
+        }
+        /* Make chat bubbles shrink to fit content */
+        .chat-bubble-fit {
+            width: fit-content;
+            max-width: 80%; /* Ensure bubbles don't get too wide on large screens */
+        }
+        /* Pulsing animation for the reloading text */
+        .animate-pulse-slow {
+            animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+    </style>
+</head>
+<body class="bg-gray-950 text-white flex flex-col h-screen overflow-hidden">
+
+    <!-- Main container with max-width for centering on large screens -->
+    <div class="max-w-4xl mx-auto my-auto w-full h-full md:h-[90vh] md:rounded-3xl md:shadow-2xl overflow-hidden flex flex-col bg-gray-950 border border-gray-800">
+        <!-- Title bar -->
+        <div class="p-4 bg-gray-900 border-b border-gray-800 text-left">
+            <h1 class="text-2xl font-extrabold text-white tracking-wide">MK1.3 Enhanced ✨</h1>
+        </div>
+    
+        <!-- Container for messages, scrolls automatically -->
+        <div id="messages-container" class="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-900">
+            <!-- Messages will be injected here by JavaScript -->
+        </div>
+    
+        <!-- Custom Modal for Alerts/Errors -->
+        <div id="error-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden">
+            <div class="bg-gray-800 p-6 rounded-2xl shadow-xl w-80 text-center border border-red-500">
+                <p id="error-message" class="text-red-400 font-semibold mb-4">An unexpected error occurred. You can try reloading the page to fix the issue.</p>
+                <div class="flex justify-center space-x-4">
+                    <button id="close-modal-btn" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-full transition-colors">Close</button>
+                    <button id="reload-btn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition-colors">Reload Page</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Message input form -->
+        <form id="chat-form" class="p-4 bg-gray-900 border-t border-gray-800">
+            <div id="image-preview-container" class="hidden items-center space-x-3 p-3 mb-2 bg-gray-800 rounded-xl transition-all duration-300">
+                <img id="image-preview" src="" alt="Preview" class="h-12 w-12 object-cover rounded-lg border border-gray-700" />
+                <span id="image-file-name" class="text-gray-400 text-sm flex-1 truncate"></span>
+                <button type="button" id="clear-image-btn" class="p-1 rounded-full text-gray-500 hover:text-white hover:bg-gray-700 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                </button>
+            </div>
+            <div class="flex items-center space-x-2">
+                <!-- Image Upload Button -->
+                <label class="flex items-center justify-center p-3 border border-gray-800 rounded-full bg-gray-900 text-white cursor-pointer hover:bg-gray-800 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-image-plus"><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"/><path d="m21 15-3.5-3.5L11 18"/><path d="M7 9h10"/><path d="M16 5h6"/><path d="M19 2v6"/></svg>
+                    <input id="image-upload" type="file" accept="image/*" class="hidden" />
+                </label>
+                <input
+                    type="text"
+                    id="message-input"
+                    placeholder="Type a message or ask about an image..."
+                    class="flex-1 p-3 border border-gray-800 rounded-full bg-gray-900 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-600 min-w-0 transition-colors"
+                />
+                <button
+                    type="submit"
+                    class="px-6 py-3 bg-indigo-600 text-white rounded-full font-semibold hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600 transition-colors shadow-lg hover:shadow-xl"
+                >
+                    Send ✨
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Reloading Animation Overlay -->
+    <div id="reload-overlay" class="fixed inset-0 bg-gray-950 flex items-center justify-center z-[100] hidden">
+        <p class="text-3xl font-bold text-indigo-400 animate-pulse-slow">Reloading...</p>
+    </div>
+
+    <script>
+        // DOM elements
+        const messagesContainer = document.getElementById('messages-container');
+        const chatForm = document.getElementById('chat-form');
+        const messageInput = document.getElementById('message-input');
+        const imageUpload = document.getElementById('image-upload');
+        const imagePreviewContainer = document.getElementById('image-preview-container');
+        const imagePreview = document.getElementById('image-preview');
+        const imageFileName = document.getElementById('image-file-name');
+        const clearImageBtn = document.getElementById('clear-image-btn');
+        const errorModal = document.getElementById('error-modal');
+        const errorMessage = document.getElementById('error-message');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const reloadBtn = document.getElementById('reload-btn');
+        const reloadOverlay = document.getElementById('reload-overlay');
+
+        // State variables
+        let messages = [];
+        let isThinking = false;
+        let base64Image = null;
+
+        // Function to show a custom error modal
+        const showErrorModal = (message) => {
+            errorMessage.textContent = message;
+            errorModal.classList.remove('hidden');
+        };
+
+        // Event listener to close the error modal
+        closeModalBtn.addEventListener('click', () => {
+            errorModal.classList.add('hidden');
+            // After the modal closes, show a prompt in the chat
+            const promptMessage = {
+                id: Date.now(),
+                text: "An error occurred, but you can continue chatting. To start fresh, just reload the page.",
+                sender: 'ai',
+                timestamp: new Date().toLocaleTimeString(),
+            };
+            renderMessage(promptMessage);
+            messages.push(promptMessage);
+        });
+
+        // Event listener to reload the page
+        reloadBtn.addEventListener('click', () => {
+            // Show the reloading animation overlay before reloading
+            reloadOverlay.classList.remove('hidden');
+            location.reload();
+        });
+
+        // Function to scroll to the bottom of the messages container
+        const scrollToBottom = () => {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        };
+
+        // Function to render a single message (user or AI)
+        const renderMessage = (message) => {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flex flex-col ${message.sender === 'user' ? 'items-end' : 'items-start'}`;
+            
+            // Set message bubble styling based on sender
+            const bubbleClass = message.sender === 'user'
+                ? 'bg-pink-50 text-gray-800 rounded-br-none'
+                : 'bg-stone-200 text-gray-800 rounded-bl-none';
+
+            messageDiv.innerHTML = `
+                <div class="p-3 rounded-2xl shadow-md ${bubbleClass} chat-bubble-fit">
+                    ${message.image ? `<img src="${message.image}" alt="User uploaded" class="rounded-lg mb-2 max-h-40 w-auto object-cover" />` : ''}
+                    <p class="break-words">${message.text}</p>
+                    <div class="flex justify-between items-center mt-2">
+                        <span class="block text-xs text-gray-500">
+                            ${message.timestamp}
+                        </span>
+                    </div>
+                </div>
+                ${message.sender === 'user' ? `
+                <div class="flex items-center space-x-2 mt-1 text-xs text-gray-400 cursor-pointer hover:text-white">
+                    <button class="edit-btn px-2 py-1 rounded-full text-xs font-semibold" data-id="${message.id}">Edit</button>
+                    <button class="copy-btn px-2 py-1 rounded-full text-xs font-semibold" data-id="${message.id}">Copy</button>
+                </div>
+                ` : `
+                <div class="mt-1 text-xs text-gray-400 cursor-pointer hover:text-white text-left">
+                    <button class="copy-btn px-2 py-1 rounded-full text-xs font-semibold" data-id="${message.id}">Copy</button>
+                </div>
+                `}
+            `;
+            messagesContainer.appendChild(messageDiv);
+
+            // Add event listeners for the copy and edit buttons
+            const copyBtn = messageDiv.querySelector('.copy-btn');
+            if (copyBtn) {
+                copyBtn.addEventListener('click', () => handleCopy(message.text, message.id, copyBtn));
+            }
+            const editBtn = messageDiv.querySelector('.edit-btn');
+            if (editBtn) {
+                editBtn.addEventListener('click', () => handleEdit(message.text, message.id));
+            }
+        };
+
+        // Function to show the 'thinking' bubble
+        const showThinkingBubble = () => {
+            isThinking = true;
+            const thinkingDiv = document.createElement('div');
+            thinkingDiv.id = 'thinking-bubble';
+            thinkingDiv.className = 'flex justify-start';
+            thinkingDiv.innerHTML = `
+                <div class="p-3 rounded-2xl chat-bubble-fit bg-stone-200 rounded-bl-none">
+                    <div class="flex space-x-1 animate-bounce-dots">
+                        <div class="h-2 w-2 bg-gray-800 rounded-full"></div>
+                        <div class="h-2 w-2 bg-gray-800 rounded-full"></div>
+                        <div class="h-2 w-2 bg-gray-800 rounded-full"></div>
+                    </div>
+                </div>
+            `;
+            messagesContainer.appendChild(thinkingDiv);
+            scrollToBottom();
+        };
+
+        // Function to remove the 'thinking' bubble
+        const hideThinkingBubble = () => {
+            isThinking = false;
+            const thinkingDiv = document.getElementById('thinking-bubble');
+            if (thinkingDiv) {
+                thinkingDiv.remove();
+            }
+        };
+
+        // Handler for copying message text to the clipboard
+        const handleCopy = (text, id, button) => {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                // Use the older, more compatible API for iframes
+                document.execCommand('copy');
+                button.textContent = 'Copied!';
+                setTimeout(() => button.textContent = 'Copy', 1000);
+            } catch (err) {
+                console.error('Failed to copy text: ', err);
+                showErrorModal('Failed to copy text. Please try again.');
+            }
+            document.body.removeChild(textarea);
+        };
+        
+        // Handler for editing a message
+        const handleEdit = (text, id) => {
+            messageInput.value = text;
+            // You can add more complex logic here, like removing the old message
+            // or highlighting the message being edited. For now, we'll just populate the input.
+        };
+        
+        // Function to call the FastAPI server for a text and image response
+        const generateFastAPIImageResponse = async (userPrompt, base64ImageData) => {
+            showThinkingBubble();
+            let retries = 0;
+            const maxRetries = 3;
+            const initialDelay = 1000;
+            
+            const payload = {
+                prompt: userPrompt,
+                imageData: base64ImageData
+            };
+        
+            // ----- FASTAPI INTEGRATION: Plug your API route here -----
+            // This is a placeholder. You need to replace this with your actual endpoint URL.
+            const apiUrl = 'http://localhost:8000/chat-with-image';
+        
+            while (retries < maxRetries) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+        
+                    if (!response.ok) {
+                        throw new Error(`API call failed with status: ${response.status}`);
+                    }
+        
+                    const result = await response.json();
+                    // Assuming your FastAPI server returns a JSON object with a 'text' field
+                    const generatedText = result.text;
+        
+                    if (generatedText) {
+                        const aiMessage = {
+                            id: Date.now(),
+                            text: generatedText,
+                            sender: 'ai',
+                            timestamp: new Date().toLocaleTimeString(),
+                        };
+                        messages.push(aiMessage);
+                        renderMessage(aiMessage);
+                        hideThinkingBubble();
+                        // Clear image state after successful response
+                        base64Image = null;
+                        imagePreviewContainer.classList.add('hidden');
+                        imagePreviewContainer.classList.remove('flex');
+                        imageUpload.value = null;
+                        return;
+                    } else {
+                        throw new Error('No content returned from FastAPI server');
+                    }
+                } catch (error) {
+                    console.error('Error generating AI response:', error);
+                    retries++;
+                    if (retries < maxRetries) {
+                        // Use exponential backoff
+                        const delay = initialDelay * Math.pow(2, retries - 1);
+                        await new Promise(res => setTimeout(res, delay));
+                    } else {
+                        // Fallback message after max retries
+                        hideThinkingBubble();
+                        showErrorModal("Sorry, I'm having trouble connecting right now. Please try again later.");
+                        base64Image = null;
+                        imagePreviewContainer.classList.add('hidden');
+                        imagePreviewContainer.classList.remove('flex');
+                        imageUpload.value = null;
+                    }
+                }
+            }
+        };
+        
+        // Function to call the FastAPI server for a text-only response
+        const generateFastAPIResponse = async (userPrompt) => {
+            showThinkingBubble();
+            let retries = 0;
+            const maxRetries = 3;
+            const initialDelay = 1000;
+            
+            const payload = { prompt: userPrompt };
+        
+            // ----- FASTAPI INTEGRATION: Plug your API route here -----
+            // This is a placeholder. You need to replace this with your actual endpoint URL.
+            const apiUrl = 'http://localhost:8000/chat';
+        
+            while (retries < maxRetries) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+        
+                    if (!response.ok) {
+                        throw new Error(`API call failed with status: ${response.status}`);
+                    }
+        
+                    const result = await response.json();
+                    // Assuming your FastAPI server returns a JSON object with a 'text' field
+                    const generatedText = result.text;
+        
+                    if (generatedText) {
+                        const aiMessage = {
+                            id: Date.now(),
+                            text: generatedText,
+                            sender: 'ai',
+                            timestamp: new Date().toLocaleTimeString(),
+                        };
+                        messages.push(aiMessage);
+                        renderMessage(aiMessage);
+                        hideThinkingBubble();
+                        return; // Exit the loop on success
+                    } else {
+                        throw new Error('No content returned from FastAPI server');
+                    }
+                } catch (error) {
+                    console.error('Error generating AI response:', error);
+                    retries++;
+                    if (retries < maxRetries) {
+                        // Use exponential backoff
+                        const delay = initialDelay * Math.pow(2, retries - 1);
+                        await new Promise(res => setTimeout(res, delay));
+                    } else {
+                        // Fallback message after max retries
+                        hideThinkingBubble();
+                        showErrorModal("Sorry, I'm having trouble connecting right now. Please try again later.");
+                    }
+                }
+            }
+        };
+
+        // Event listener for form submission
+        chatForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const messageText = messageInput.value.trim();
+            if (messageText === '' && !base64Image) {
+                showErrorModal('Please enter a message or select an image.');
+                return;
+            }
+
+            const userMessage = {
+                id: Date.now(),
+                text: messageText,
+                sender: 'user',
+                timestamp: new Date().toLocaleTimeString(),
+                image: base64Image ? `data:image/jpeg;base64,${base64Image}` : null,
+            };
+
+            messages.push(userMessage);
+            renderMessage(userMessage);
+            
+            if (base64Image) {
+                generateFastAPIImageResponse(messageText, base64Image);
+            } else {
+                generateFastAPIResponse(messageText);
+            }
+            
+            // Clear input fields
+            messageInput.value = '';
+            scrollToBottom();
+        });
+
+        // Event listener for image upload
+        imageUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                imagePreview.src = URL.createObjectURL(file);
+                imageFileName.textContent = file.name;
+                imagePreviewContainer.classList.remove('hidden');
+                imagePreviewContainer.classList.add('flex');
+
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    base64Image = reader.result.split(',')[1];
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Event listener for clearing the image preview
+        clearImageBtn.addEventListener('click', () => {
+            base64Image = null;
+            imageUpload.value = null; // Reset the file input
+            imagePreviewContainer.classList.add('hidden');
+            imagePreviewContainer.classList.remove('flex');
+            imagePreview.src = '';
+            imageFileName.textContent = '';
+        });
+        
+        // Initial greeting message on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            const initialMessage = {
+                id: Date.now(),
+                text: "Hello there! I'm an AI assistant. How can I help you today?",
+                sender: 'ai',
+                timestamp: new Date().toLocaleTimeString(),
+            };
+            messages.push(initialMessage);
+            renderMessage(initialMessage);
+            scrollToBottom();
+        });
+    </script>
+</body>
+</html>

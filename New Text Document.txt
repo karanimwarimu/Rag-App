@@ -1,0 +1,10 @@
+from langchain_community.document_loaders import UnstructuredAPIFileLoader
+
+loader = UnstructuredAPIFileLoader(
+    file_path=temp_path,
+    api_key="YOUR_UNSTRUCTURED_API_KEY", # Get a free key from unstructured.io
+    url="YOUR_HI_RES_URL",               # Provided when you get the key
+    strategy="ocr_only",
+    mode="elements"
+)
+docs = loader.load()
