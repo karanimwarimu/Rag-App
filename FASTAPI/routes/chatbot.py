@@ -8,6 +8,7 @@ from utilities.storeembeddedfiles import query_chroma
 from utilities.formatfromchroma import prepare_context
 from utilities.results_reranker import rerank_chunks
 #from utilities.rag_textgenerator import text_Generator
+from utilities.database.retrieve_DB import query_supabase
 
 router = APIRouter()
 
@@ -27,8 +28,9 @@ async def  generate_response(request_data : PromptRequest) :
  logging.info("prompt embedded")
  
 
- chroma_result = await query_chroma(embedded_prompt)
- #logging.info(f"RESULTXXXXXXXXXX :::::::::::::::::::::::::::::::::::::: {chroma_result}")
+ chroma_result = await query_supabase(embedded_prompt)
+ 
+ logging.info(f"RESULTXXXXXXXXXX :::::::::::::::::::::::::::::::::::::: {chroma_result}")
 
  response_text = await prepare_context(chroma_result)
  #logging.info(f"final RESULT :::::::::::::::::: {response_text}")

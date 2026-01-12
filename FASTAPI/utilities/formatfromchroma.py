@@ -8,12 +8,14 @@ from utilities.postprocessors import trim_chunks, rerank_chunks , filter_and_tri
 # -------------------------
 async def format_chroma_query(
     chroma_result,
-    top_k=5,               # fewer initially
-    min_diff=0.01,         # strict deduplication by distance
-    max_len=500,           # short for LLMs
+    top_k=5,
+    min_diff=0.01,
+    max_len=500,
     include_metadata=True,
     filter_section=None,
 ):
+    import json
+
     docs = chroma_result.get("documents", [[]])[0]
     distances = chroma_result.get("distances", [[]])[0]
     metadatas = chroma_result.get("metadatas", [[]])[0] if "metadatas" in chroma_result else [{}] * len(docs)
@@ -22,6 +24,13 @@ async def format_chroma_query(
     clean_docs, seen = [], []
 
     for doc, dist, meta in ranked:
+        # 🔑 FIX: Postgres returns metadata as string
+        if isinstance(meta, str):
+            try:
+                meta = json.loads(meta)
+            except Exception:
+                meta = {}
+
         if any(abs(dist - d) < min_diff for d in seen):
             continue
 
@@ -33,7 +42,11 @@ async def format_chroma_query(
         if len(clean_doc) > max_len:
             clean_doc = clean_doc[:max_len] + "..."
 
-        minimal_meta = {k: meta.get(k) for k in ["file name", "page", "page_label", "source", "section"] if k in meta} if include_metadata else {}
+        minimal_meta = (
+            {k: meta.get(k) for k in ["file name", "page", "page_label", "source", "section"] if k in meta}
+            if include_metadata
+            else {}
+        )
 
         clean_docs.append({"text": clean_doc, "metadata": minimal_meta})
         seen.append(dist)
@@ -41,8 +54,9 @@ async def format_chroma_query(
         if len(clean_docs) >= top_k:
             break
 
-    logging.info(f"Fetched {len(clean_docs)} strict docs from Chroma.")
+    logging.info(f"Fetched {len(clean_docs)} strict docs from Supabase.")
     return clean_docs
+
 
 # -------------------------
 # Token-aware chunking for LLM
