@@ -8,7 +8,9 @@ from utilities.extractmetada import extract_metadata
 from utilities.documentloader import load_files
 from utilities.chunkdocuments import chunk_loaded_documents
 from utilities.embedddocuments import embedd_documents 
-from utilities.storeembeddedfiles import store_embedded_files , check_stored_embeddedchunks 
+#from utilities.storeembeddedfiles import store_embedded_files , check_stored_embeddedchunks 
+from utilities.database.store_DB import store_embedded_files
+
 
 router = APIRouter()
 
@@ -20,16 +22,17 @@ async def uploaded_file_processing(loaded_document  , filename ):
     try:
     
         chunked_docs = await  chunk_loaded_documents(loaded_document)
-        #print(f":::::::::::::::: chUNKED DOCS  {chunked_docs}" )
+        print(f":::::::::::::::: chUNKED DOCS  {chunked_docs}" )
         logging.info(f"chunked {filename} successfully")
 
         embedded_chunks  = await embedd_documents(chunked_docs)
-        #print(embedded_chunks)
+        print(embedded_chunks)
         logging.info(f"Embedded  {filename} successfully")
 
         await store_embedded_files(embedded_chunks)
-        strit = check_stored_embeddedchunks()
-        #print(f"::::::::::::::::: embedded {strit}")
+        
+        #strit = check_stored_embeddedchunks()
+        #print(f"::::::::::::::::: embedded files (how stored){strit}")
         logging.info(f"stored  {filename}  to chroma successfully")
     except Exception as e :
         print("ERROR :" , e)
