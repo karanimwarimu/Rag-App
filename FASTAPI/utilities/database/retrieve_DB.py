@@ -1,3 +1,4 @@
+import json
 from .supabase_connect import db_connect
 
 async def query_supabase(embedded_prompt, n_results: int = 4):
@@ -8,7 +9,7 @@ async def query_supabase(embedded_prompt, n_results: int = 4):
     conn = await db_connect()
 
     try:
-        # Normalize input
+        # Normalize input (numpy → list)
         if hasattr(embedded_prompt, "tolist"):
             embedded_prompt = embedded_prompt.tolist()
 
@@ -34,11 +35,19 @@ async def query_supabase(embedded_prompt, n_results: int = 4):
             n_results,
         )
 
+        # 🔑 Ensure metadata is ALWAYS a dict
+        metadatas = []
+        for r in rows:
+            meta = r["metadata"]
+            if isinstance(meta, str):
+                meta = json.loads(meta)
+            metadatas.append(meta)
+
         # Chroma-compatible shape
         return {
             "documents": [[r["text"] for r in rows]],
             "distances": [[r["distance"] for r in rows]],
-            "metadatas": [[r["metadata"] for r in rows]],
+            "metadatas": [metadatas],
         }
 
     finally:

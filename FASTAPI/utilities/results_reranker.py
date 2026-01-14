@@ -76,6 +76,9 @@ async def rerank_chunks(
     top_k: int = 2,
     min_score: float = 0.0,
 ):
+    if not chunks:
+        return []
+
     # Normalize chunks
     formatted_chunks = [
         {"text": c["text"], "metadata": c.get("metadata", {})}
@@ -85,6 +88,9 @@ async def rerank_chunks(
     ]
 
     texts = [c["text"] for c in formatted_chunks]
+
+    if not texts:
+        return []
 
     payload = {
         "inputs": {
@@ -103,12 +109,6 @@ async def rerank_chunks(
     response.raise_for_status()
     results = response.json()
 
-    # Example HF response:
-    # [
-    #   {"index": 3, "score": 10.92},
-    #   {"index": 1, "score": 7.41}
-    # ]
-
     ranked = []
     for r in results:
         if r["score"] >= min_score:
@@ -117,6 +117,7 @@ async def rerank_chunks(
             break
 
     return ranked
+
 
 
 async def merge_chunks_for_llm(query: str, chunks: list, top_k: int = 5, max_tokens: int = 2000, split_chunk_tokens: int = 500):

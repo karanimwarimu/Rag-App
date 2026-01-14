@@ -28,11 +28,18 @@ async def  generate_response(request_data : PromptRequest) :
  logging.info("prompt embedded")
  
 
- chroma_result = await query_supabase(embedded_prompt)
+ retrieved_chunks = await query_supabase(embedded_prompt)
+ #chroma_result =  await query_chroma(embedded_prompt)
  
- logging.info(f"RESULTXXXXXXXXXX :::::::::::::::::::::::::::::::::::::: {chroma_result}")
+ if not retrieved_chunks:
+    return {
+        "answer": "I couldn't find relevant information in your documents.",
+        "sources": []
+    }
+ 
+ logging.info(f"RESULTXXXXXXXXXX :::::::::::::::::::::::::::::::::::::: {retrieved_chunks}")
 
- response_text = await prepare_context(chroma_result)
+ response_text = await prepare_context(retrieved_chunks)
  #logging.info(f"final RESULT :::::::::::::::::: {response_text}")
 
  prepared_llm_context = await rerank_chunks(user_prompt , response_text)
