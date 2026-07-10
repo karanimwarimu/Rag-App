@@ -4,11 +4,42 @@ venv/
 .venv/
 env/
 
-# --- Environment Variables (CRITICAL: Never commit these!) ---
+# --- Environment Variables (CRITICAL: Never commit secrets!) ---
 .env
+.env.*
+*.env.local
 
 # --- Python Artifacts ---
 __pycache__/
 *.py[cod]
 *$py.class
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# --- Build / Distribution ---
+build/
+dist/
+*.egg-info/
+wheelhouse/
+
+# --- Local Databases / Vector Stores ---
+*.sqlite3
+*.db
+Chroma DB/
+
+# --- Editor / IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# --- Logs ---
+*.log

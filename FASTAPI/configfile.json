@@ -1,6 +1,6 @@
 {
-    "TemplatesFolder" :  "F:/BIG2/Projects mk1/RAG_APP/TEMPLATE" ,
-    "StaticFolder" : "F:/BIG2/Projects mk1/RAG_APP/STATIC" ,
+    "TemplatesFolder" :  "F:/BIG (II)/Projects mk1/RAG_APP/TEMPLATE", 
+    "StaticFolder" : "F:/BIG (II)/Projects mk1/RAG_APP/STATIC",
 
     "modelpath" : "F:/BIG (II)/MODEL(II)/mistral/mistral-7b-instruct-v0.1.Q4_K_M.gguf" ,
     "n_ctx" : 2048, 

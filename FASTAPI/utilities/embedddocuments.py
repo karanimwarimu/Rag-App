@@ -1,5 +1,4 @@
 import json
-from sentence_transformers import SentenceTransformer
 from typing import List,Dict,Any
 from langchain_core.documents import Document
 
@@ -9,9 +8,10 @@ from dotenv import load_dotenv
 from huggingface_hub import InferenceClient
 import numpy as np
 
-load_dotenv()   
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))   
 
-with open("configfile.json", "r") as dir:
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "configfile.json")
+with open(CONFIG_PATH, "r") as dir:
   configfile = json.load(dir)
 
 embedding_model_path = configfile["Embedding Model"]

@@ -5,7 +5,7 @@ import os
 import sys 
 
 
-load_dotenv()
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
 api_key = os.getenv("Embedding_KEY")
 
@@ -15,7 +15,8 @@ if not api_key  :
 else :
     print("API key correct :) ")
     
-with open("configfile.json") as red :
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "configfile.json")
+with open(CONFIG_PATH) as red :
     configfile= json.load(red)
 
 

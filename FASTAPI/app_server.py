@@ -1,11 +1,12 @@
 import logging 
 logging.basicConfig(level=logging.INFO)
+import os
 from fastapi import FastAPI ,Request 
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-import json
+import jinja2
 
 
 from routes.fileupload import router as uploadfile_route
@@ -23,15 +24,17 @@ app.add_middleware(
 )
 
 
-with open ('configfile.json') as conf :
-    configfile = json.load(conf)
+# Use relative paths computed from this file's location
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+Template_DIR = os.path.join(BASE_DIR, "..", "TEMPLATE")
+StaticFiles_DIR = os.path.join(BASE_DIR, "..", "STATIC")
 
-#get folders from  cofig files
-Template_DIR = configfile["TemplatesFolder"]
-StaticFiles_DIR = configfile["StaticFolder"]
+#load files - use explicit loader with cache disabled to avoid Jinja2 LRUCache bug on Windows
+jinja2_loader = jinja2.FileSystemLoader(Template_DIR, followlinks=True)
+jinja2_env = jinja2.Environment(loader=jinja2_loader, auto_reload=False, enable_async=False, cache_size=0)
+templates = Jinja2Templates(env=jinja2_env)
 
-#load files
-templates = Jinja2Templates(directory= Template_DIR) 
+
 app.mount("/static", StaticFiles(directory= StaticFiles_DIR) , name="static")
 
 
@@ -39,11 +42,19 @@ app.mount("/static", StaticFiles(directory= StaticFiles_DIR) , name="static")
  
 @app.get('/chatbot' , response_class=HTMLResponse)
 async def load_RagChat(request : Request ):
-    return templates.TemplateResponse("RagChatApp.html" , {"request" : request})
+    return templates.TemplateResponse(
+    request,                          # <-- Request object goes first
+    "RagChatApp.html",
+    {"request": request}
+)
        
 @app.get('/fileuploader' , response_class=HTMLResponse)
 async def load_file_Uploader(request:Request):
-   return templates.TemplateResponse("FileUploader.html" , {"request" : request})
+   return templates.TemplateResponse(
+    request,
+    "FileUploader.html",
+    {"request": request}
+   )
  
 app.include_router(chat_route , prefix="")
 app.include_router(uploadfile_route , prefix="")

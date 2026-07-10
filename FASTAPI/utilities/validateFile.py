@@ -3,7 +3,8 @@ import logging
 import os
 from fastapi import HTTPException , UploadFile
 
-with open("configfile.json" , "r") as con :
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "configfile.json")
+with open(CONFIG_PATH , "r") as con :
   configfile = json.load(con)
 
   ALLOWED_EXTENSIONS = set(configfile['Allowed_Extensions'])

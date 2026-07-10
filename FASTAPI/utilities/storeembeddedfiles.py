@@ -2,10 +2,12 @@ import json
 import chromadb
 import uuid
 import logging
+import os
 from typing import List, Dict, Any
 
 
-with open("configfile.json" , "r" ) as confr :
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "configfile.json")
+with open(CONFIG_PATH , "r" ) as confr :
     configfile = json.load(confr)
 
 PERSISTENT_DB = configfile['Chroma DB']
