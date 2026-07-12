@@ -1,0 +1,7 @@
+llm:
+  provider: google          # google | huggingface
+  selected_model: gemini/gemini-1.5-flash
+  fallback_model: huggingface/meta-llama/Meta-Llama-3-8B-Instruct
+  max_tokens: 1024
+  temperature: 0.2
+  timeout_seconds: 30

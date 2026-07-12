@@ -2,6 +2,11 @@ import tempfile
 from langchain_community.document_loaders import PyPDFLoader, TextLoader
 from langchain_unstructured import UnstructuredLoader
 import os
+from dotenv import load_dotenv
+
+# Optional scratch-space override; defaults to the OS temp dir when unset.
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
+STORAGE_DIR = os.getenv("STORAGE_DIR") or None
 
 # Try to import docx2txt loader, fall back gracefully
 try:
@@ -15,7 +20,7 @@ async def load_files(file , metadata):
 
     file_extension= metadata['file_extension']
     
-    with tempfile.NamedTemporaryFile(delete=False , suffix=file_extension) as temp :
+    with tempfile.NamedTemporaryFile(delete=False , suffix=file_extension , dir=STORAGE_DIR) as temp :
         temp.write(await file.read())
         temp_path = temp.name
 

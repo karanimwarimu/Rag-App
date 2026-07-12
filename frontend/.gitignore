@@ -1,0 +1,11 @@
+# dependencies
+node_modules
+
+# local env (git-ignored; copy from .env.example)
+.env
+
+# build output
+dist
+
+# logs
+npm-debug.log*

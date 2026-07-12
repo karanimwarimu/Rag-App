@@ -4,6 +4,46 @@ All notable changes to this project are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 adhering to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-07-12
+
+### Added
+- **Full frontend/backend decoupling.** Standalone React + Vite SPA (`frontend/`) replaces the Jinja2 templates; the backend is now a pure JSON API.
+- **Two-service architecture.** UI served by Vite/Netlify; API served by FastAPI. No HTML/static serving in the backend.
+- **Chat UI rebuilt as a ChatGPT-style dark interface** (message bubbles, streaming indicator, centered composer). The floating assistant (J.A.R.V.I.S.) widget was removed.
+- **LLM answer generation enabled via litellm** (cloud-routed, hot-swappable). Default model: `Qwen/Qwen2.5-7B-Instruct` on Hugging Face serverless.
+- **Server-Sent Events (SSE) streaming** for `/api/v1/chat` (each frame `data: {"token": "..."}`, ends with `data: [DONE]`).
+- **`config.yaml` model-routing layer** (`utilities/llm/config_loader.py`) — provider/model selection + fallback. Swap models by editing `config.yaml` + restart; no code change.
+- **Versioned API routes.** `/send_prompt` → `POST /api/v1/chat`, `/File_Upload` → `POST /api/v1/upload`.
+- **CORS restricted** to `FRONTEND_ORIGIN` (comma-separated allow-list) instead of `*`.
+- **Auth/job scaffolding.** `POST /api/v1/auth/*` structural stubs (return `501`) and `user_id`/`job_id` request fields on chat/upload.
+- **Landing page, auth shell** (Login/SignUp/ForgotPassword/OAuth) and a routing matrix with `VITE_SKIP_AUTH` soft-gating.
+- **Web Link Uploader stub page** (behind `VITE_ENABLE_LINK_UPLOADER`).
+- **Deployment assets:** `FASTAPI/Dockerfile`, `FASTAPI/.dockerignore`, `frontend/netlify.toml`, and README Deployment section (Render + Netlify).
+
+### Changed
+- Removed Jinja2 template serving and the `/static` mount; deleted `TEMPLATE/` and `STATIC/`; moved UI images to `frontend/public/IMAGES/`.
+- Removed dead local-model config (`modelpath`, `n_ctx`, `n_threads`, `n_gpu_layers`, `model_configuration`) from `configfile.json`.
+- `documentloader.py` uses `tempfile` + optional `STORAGE_DIR` (OS-agnostic, no hardcoded paths).
+- Fixed `config_loader.py` path resolution (was resolving `config.yaml` one directory too deep, in `utilities/` instead of `FASTAPI/`).
+- `requirements.txt` pinned with `litellm==1.92.0` and `PyYAML==6.0.2`.
+- Reworked `README.md` to reflect the decoupled architecture, updated repository structure, and deployment guide.
+
+### Removed
+- Dead Llama generators: `utilities/rag_textgenerator.py`, `text_generator.py`, `chat_generator.py`.
+
+### Known Issues / Not Yet Implemented
+- Auth endpoints are `501` stubs (no real login, tokens, or sessions).
+- Virtual assistant backend (`/api/v1/assistant`) not implemented; the UI widget was removed.
+- Web Link Uploader is a UI-only stub.
+- Blocking rerank call and no connection pooling remain.
+- No automated tests / CI.
+
+### Notes
+- `config.yaml` is committed (model names only, no secrets). API keys live in `utilities/.env` (git-ignored) or are injected as environment variables by the host (Render).
+- Hugging Face embeddings/reranking and litellm LLM calls run remotely; the service needs no GPU and downloads no model weights.
+
+---
+
 ## [0.1.0] - 2026-07-10
 
 ### Added
@@ -32,14 +72,14 @@ adhering to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Fixed `FileUploader.js` fetch URL — added missing `http://` prefix to prevent 404.
 
 ### Known Issues / Not Yet Implemented
-- LLM answer generation is scaffolded but not enabled.
-- Frontend calls are hardcoded to LAN IPs and will not work when deployed.
-- `DELETE /delete/{filename}` and `POST /assistant` endpoints referenced by the UI are not implemented.
+- LLM answer generation was scaffolded but not enabled (now enabled in 0.2.0).
+- Frontend calls were hardcoded to LAN IPs and would not work when deployed (now config-driven in 0.2.0).
 - No connection pooling, authentication, rate limiting, or automated tests.
-- Dead Chroma/Llama code remains in the tree.
+- Dead Chroma/Llama code remained in the tree (removed in 0.2.0).
 
 ### Notes
 - Both encoder models run remotely on the Hugging Face Inference API; the service needs no GPU and downloads no model weights.
-- `asyncpg` and `tiktoken` must be present in the environment (add to requirements before deploying).
+- `asyncpg` and `tiktoken` must be present in the environment (added to requirements before deploying).
 
-[0.1.0]: #0.1.0
+[0.2.0]: #020
+[0.1.0]: #010

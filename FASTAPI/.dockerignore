@@ -1,0 +1,12 @@
+# Secrets and local/venv artifacts are never copied into the image.
+__pycache__/
+*.pyc
+.venv/
+venv/
+rag_venv/
+.env
+.env.example
+.git/
+node_modules/
+frontend/
+dist/
