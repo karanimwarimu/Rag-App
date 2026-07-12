@@ -1,60 +1,41 @@
-import logging 
+import logging
 logging.basicConfig(level=logging.INFO)
 import os
-from fastapi import FastAPI ,Request 
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
+from dotenv import load_dotenv
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import jinja2
 
+# Load app-level config (FRONTEND_ORIGIN, Embedding_KEY, reranker_KEY) from the
+# utilities .env. FRONTEND_ORIGIN may be a comma-separated list of allowed origins.
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "utilities", ".env"))
+
+FRONTEND_ORIGIN = [
+    o.strip()
+    for o in os.getenv("FRONTEND_ORIGIN", "http://localhost:5173").split(",")
+    if o.strip()
+]
 
 from routes.fileupload import router as uploadfile_route
 from routes.chatbot import router as chat_route
+from routes.auth import router as auth_route
 
 app = FastAPI()
 
 # --- CORS settings ---
+# Restricted to the frontend origin(s) via FRONTEND_ORIGIN (Guide 1 Step 5).
+# Set FRONTEND_ORIGIN in FASTAPI/utilities/.env (comma-separated for multiple).
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # For testing; replace with your frontend URL in production
+    allow_origins=FRONTEND_ORIGIN,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Note: Jinja2 template serving and the /static mount were removed in Guide 1
+# Step 4. This process now exposes API routes only; the standalone React+Vite
+# frontend (frontend/) serves all UI and static assets.
 
-# Use relative paths computed from this file's location
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-Template_DIR = os.path.join(BASE_DIR, "..", "TEMPLATE")
-StaticFiles_DIR = os.path.join(BASE_DIR, "..", "STATIC")
-
-#load files - use explicit loader with cache disabled to avoid Jinja2 LRUCache bug on Windows
-jinja2_loader = jinja2.FileSystemLoader(Template_DIR, followlinks=True)
-jinja2_env = jinja2.Environment(loader=jinja2_loader, auto_reload=False, enable_async=False, cache_size=0)
-templates = Jinja2Templates(env=jinja2_env)
-
-
-app.mount("/static", StaticFiles(directory= StaticFiles_DIR) , name="static")
-
-
-#::::::::::::::::::: LOAD WEB PAGES :::::::::::::::::::::::::
- 
-@app.get('/chatbot' , response_class=HTMLResponse)
-async def load_RagChat(request : Request ):
-    return templates.TemplateResponse(
-    request,                          # <-- Request object goes first
-    "RagChatApp.html",
-    {"request": request}
-)
-       
-@app.get('/fileuploader' , response_class=HTMLResponse)
-async def load_file_Uploader(request:Request):
-   return templates.TemplateResponse(
-    request,
-    "FileUploader.html",
-    {"request": request}
-   )
- 
-app.include_router(chat_route , prefix="")
-app.include_router(uploadfile_route , prefix="")
+app.include_router(chat_route, prefix="")
+app.include_router(uploadfile_route, prefix="")
+app.include_router(auth_route, prefix="")

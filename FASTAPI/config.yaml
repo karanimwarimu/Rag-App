@@ -1,0 +1,7 @@
+llm:
+  provider: huggingface
+  selected_model: huggingface/Qwen/Qwen2.5-7B-Instruct
+  fallback_model: huggingface/Qwen/Qwen2.5-7B-Instruct
+  max_tokens: 1024
+  temperature: 0.2
+  timeout_seconds: 30

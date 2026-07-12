@@ -1,4 +1,4 @@
-from fastapi import APIRouter ,BackgroundTasks , UploadFile , File
+from fastapi import APIRouter ,BackgroundTasks , UploadFile , File , Form
 import logging
 from datetime import datetime 
 
@@ -39,8 +39,13 @@ async def uploaded_file_processing(loaded_document  , filename ):
         logging.error(f"Couldn't process the file : {filename}")
 
 
-@router.post('/File_Upload')
-async def handle_uploaded_files(background_tasks : BackgroundTasks ,file : UploadFile = File(...)) :
+@router.post('/api/v1/upload')
+async def handle_uploaded_files(
+    background_tasks : BackgroundTasks ,
+    file : UploadFile = File(...) ,
+    user_id : str | None = Form(None) ,
+    job_id : str | None = Form(None) ,
+) :
       logging.info(f"Received file: {file.filename}")
       file_upload_time = datetime.utcnow().isoformat()
       Validate_uploaded_file(file)

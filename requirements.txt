@@ -59,3 +59,7 @@ httpx-sse==0.4.3
 # --- Tokenization ---
 tokenizers==0.22.1
 transformers==4.57.1
+
+# --- LLM answer generation (cloud-routed, hot-swappable) ---
+litellm==1.92.0
+PyYAML==6.0.2
