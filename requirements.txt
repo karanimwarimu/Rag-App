@@ -42,7 +42,7 @@ tiktoken==0.13.0
 
 # --- Utilities ---
 python-dotenv==1.2.1
-pydantic==2.12.4
+pydantic==2.12.5
 httpx==0.28.1
 orjson==3.11.4
 lxml==6.0.2
