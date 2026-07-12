@@ -60,7 +60,7 @@ httpx-sse==0.4.3
 
   # --- Vector store ---
 
-+ chromadb>=0.5.0,<0.7.0
+ chromadb>=0.5.0,<0.7.0
 
 # --- Tokenization ---
 transformers==4.57.1
