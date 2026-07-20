@@ -137,7 +137,7 @@ RAG_APP/
 
 ```bash
 # Backend (conda example)
-conda create -n ragapp python=3.12 -y
+conda create -n ragapp python=3.11 -y
 conda activate ragapp
 cd RAG_APP/FASTAPI
 pip install -r requirements.txt

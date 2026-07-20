@@ -1,6 +1,6 @@
 # Build context for this Dockerfile is the FASTAPI/ directory, e.g.:
 #   docker build -f FASTAPI/Dockerfile -t rag-backend FASTAPI
-FROM python:3.12-slim
+FROM python:3.11-slim
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
